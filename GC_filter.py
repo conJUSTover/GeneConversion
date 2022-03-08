@@ -2,6 +2,7 @@
 
 #TODO create randomized positions
 #TODO divide vcf by user-inputted blocks and run GC_check on each block
+#TODO Allow for multiple species in d1, d2, p1, p2 upon input
 
 import sys
 import argparse
