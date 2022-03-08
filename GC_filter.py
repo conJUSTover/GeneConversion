@@ -3,17 +3,16 @@
 import sys
 import argparse
 
-def read_file(chrom, d1, p1, p2, d2, vcf, outfile):
+def read_file(d1, p1, p2, d2, vcf):
     #Read file and filter out non-informative SNPs 
     #read header
-    running_count = 0
-    max_begin = 0
-    min_begin = 0
-    last_pos = 0
-    chrom = chrom
-    d1_count = 0
-    d2_count = 0
-    all_GC_tally = []
+#    running_count = 0
+#    max_begin = 0
+#    min_begin = 0
+#    last_pos = 0
+#    d1_count = 0
+#    d2_count = 0
+    GC_SNPs = []
     SNPheader = False
 
 
@@ -30,40 +29,59 @@ def read_file(chrom, d1, p1, p2, d2, vcf, outfile):
 #                    #die
 
                 SNP_value = check_SNP(line, SNPheader)
-                if SNP_value > 0:
+                if SNP_value != 0:
+                    GC_SNPs.append([line[0], line[1], str(line[0]) + "_" + str(line[1]), SNP_value])
+    return GC_SNPs, SNPheader
+
+
+
+
+
+def GC_check(SNPs, d1, d2):
+    running_count = 0
+    max_begin = 0
+    min_begin = 0
+    last_pos = 0
+    d1_count = 0
+    d2_count = 0
+    all_GC_tally = []
+    for line in SNPs:
+        SNP_value = line[3]
+        if SNP_value > 0:
 #                    print(str(line[1]))
-                    if running_count == 0:
-                        #edit stats
-                        max_begin = last_pos
-                        min_begin = line[1]
-                    #update all remaining stats
-                    running_count += 1
-                    last_pos = line[1]
-                    if SNP_value == 1:
-                        d1_count += 1
-                    if SNP_value == 2:
-                        d2_count += 1
-                elif SNP_value == -1:
-                    if running_count > 1:
-                        #Process GC site 
-                        max_end = line[1]
-                        min_end = last_pos
-                        if d2_count == 0:
-                            donor_dip = d1 + "_donor"
-                        elif d1_count == 0:
-                            donor_dip = d2 + "_donor"
-                        else: donor_dip = "mixed_donors"
-                        all_GC_tally.append([chrom, max_begin, min_begin, min_end, max_end, running_count, d1_count, d2_count, donor_dip])
-                        max_begin = 0
-                        min_begin = 0
-                        donor_dip = 0
-                    d1_count = 0
-                    d2_count = 0
-                    max_begin = 0
-                    min_begin = 0
-                    running_count = 0
-                    last_pos = line[1] 
-    print_output(all_GC_tally, outfile)
+            if running_count == 0:
+                #edit stats
+                max_begin = last_pos
+                min_begin = line[1]
+            #update all remaining stats
+            running_count += 1
+            last_pos = line[1]
+            if SNP_value == 1:
+                d1_count += 1
+            if SNP_value == 2:
+                d2_count += 1
+        elif SNP_value == -1:
+            if running_count > 1:
+                #Process GC site 
+                max_end = line[1]
+                min_end = last_pos
+                if d2_count == 0:
+                    donor_dip = d1 + "_donor"
+                elif d1_count == 0:
+                    donor_dip = d2 + "_donor"
+                else: donor_dip = "mixed_donors"
+                all_GC_tally.append([line[0], max_begin, min_begin, min_end, max_end, running_count, d1_count, d2_count, donor_dip])
+                max_begin = 0
+                min_begin = 0
+                donor_dip = 0
+            d1_count = 0
+            d2_count = 0
+            max_begin = 0
+            min_begin = 0
+            running_count = 0
+            last_pos = line[1] 
+    return all_GC_tally
+#    print_output(all_GC_tally, outfile)
 
 def check_SNP(vcf_line, header_list):
     d1_SNPs = [["1", "1", "1", "0"], ["0", "0", "0", "1"]]
@@ -90,7 +108,7 @@ def process_header(header, d1, p1, p2, d2):
 def parse_args():
     #Parse Arguments from input
     parser = argparse.ArgumentParser(usage="GC [-h] -c CHROM -d1 DIP_PREFIX -p1 POLY_PREFIX -p2 POLY_PREFIX -d2 DIP_PREFIX -vcf VCF_FILE -o OUTFILE")
-    parser.add_argument("c", help="Name of Chromosome for vcf file. Only used in output file, does not have to match vcf file.")
+#    parser.add_argument("c", help="Name of Chromosome for vcf file. Only used in output file, does not have to match vcf file.")
     parser.add_argument("d1", help="VCF header column name for Diploid 1.")
     parser.add_argument("p1", help="VCF header column name for Polyploid Subgenome 1.")
     parser.add_argument("p2", help="VCF header column name for Polyploid Subgenome 2.")
@@ -98,14 +116,15 @@ def parse_args():
     parser.add_argument("vcf", help="Input VCF file. Must contain only one chromosome, and be sorted by position number, and contain header line starting with \"#CHROM\"")
     parser.add_argument("o", help="Outfile to print resulting areas of potential Homoeologous Gene Conversion.")
     args = parser.parse_args()
-    print(args.c)
+#    print(args.c)
     print(args.d1)
     print(args.p1)
     print(args.p2)
     print(args.d2)
     print(args.o)
-    read_file(args.c, args.d1, args.p1, args.p2, args.d2, args.vcf, args.o)
-    
+    filtered_vcf, species = read_file(args.d1, args.p1, args.p2, args.d2, args.vcf)
+    GC_sites = GC_check(filtered_vcf, args.d1, args.d2)
+    print_output(GC_sites, args.o)
 
 
 
