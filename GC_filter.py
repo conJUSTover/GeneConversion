@@ -2,7 +2,6 @@
 
 #TODO create randomized positions
 #TODO divide vcf by user-inputted blocks and run GC_check on each block
-#TODO within each block, allow for truncated analyses if GC event overlaps endopoint
 
 import sys
 import argparse
@@ -27,8 +26,6 @@ def read_file(d1, p1, p2, d2, vcf):
                 if SNP_value != 0:
                     GC_SNPs.append([line[0], line[1], str(line[0]) + "_" + str(line[1]), SNP_value])
     return GC_SNPs, SNPheader
-
-
 
 
 
@@ -64,7 +61,11 @@ def GC_check(SNPs, d1, d2):
                 elif d1_count == 0:
                     donor_dip = d2 + "_donor"
                 else: donor_dip = "mixed_donors"
-                all_GC_tally.append([line[0], max_begin, min_begin, min_end, max_end, running_count, d1_count, d2_count, donor_dip])
+                if max_begin == 0: 
+                    note = "terminated_beginning"
+                    max_begin = min_begin
+                else: note = ""
+                all_GC_tally.append([line[0], max_begin, min_begin, min_end, max_end, running_count, d1_count, d2_count, donor_dip, note])
                 max_begin = 0
                 min_begin = 0
                 donor_dip = 0
@@ -74,7 +75,20 @@ def GC_check(SNPs, d1, d2):
             min_begin = 0
             running_count = 0
             last_pos = line[1] 
+    if running_count > 0:
+        #process final string of SNPs
+        max_end = last_pos
+        min_end = last_pos
+        if d2_count == 0:
+            donor_dip = d1 + "_donor"
+        elif d1_count == 0:
+            donor_dip = d2 + "_donor"
+        else: donor_dip = "mixed_donors"
+        note = "terminated_ending"
+        all_GC_tally.append([line[0], max_begin, min_begin, min_end, max_end, running_count, d1_count, d2_count, donor_dip, note])
     return all_GC_tally
+
+
 
 def check_SNP(vcf_line, header_list):
     d1_SNPs = [["1", "1", "1", "0"], ["0", "0", "0", "1"]]
@@ -90,6 +104,8 @@ def check_SNP(vcf_line, header_list):
     else:
         return 0
 
+
+
 def process_header(header, d1, p1, p2, d2):
     dip1 = header.index(d1)
     pol1 = header.index(p1)
@@ -97,6 +113,8 @@ def process_header(header, d1, p1, p2, d2):
     dip2 = header.index(d2)
     pos = [dip1, pol1, pol2, dip2]
     return pos
+
+
 
 def parse_args():
     #Parse Arguments from input
@@ -114,8 +132,12 @@ def parse_args():
     print(args.d2)
     print(args.o)
     filtered_vcf, species = read_file(args.d1, args.p1, args.p2, args.d2, args.vcf)
+    print(str(len(filtered_vcf)))
     GC_sites = GC_check(filtered_vcf, args.d1, args.d2)
     print_output(GC_sites, args.o)
+
+
+
 
 
 
@@ -125,5 +147,7 @@ def print_output(output, outfile):
         for item in output:
             items = [str(i) for i in item]
             handle.write("\t".join(items) + "\n")
+
+
 
 parse_args()
