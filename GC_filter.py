@@ -1,5 +1,9 @@
 #!/usr/bin/python
 
+#TODO create randomized positions
+#TODO divide vcf by user-inputted blocks and run GC_check on each block
+#TODO within each block, allow for truncated analyses if GC event overlaps endopoint
+
 import sys
 import argparse
 
