@@ -1,7 +1,6 @@
 #!/usr/bin/python
 
 #TODO create randomized positions
-#TODO divide vcf by user-inputted blocks and run GC_check on each block
 #TODO Allow for multiple species in d1, d2, p1, p2 upon input
 
 import sys
@@ -25,7 +24,7 @@ def read_file(d1, p1, p2, d2, vcf):
             else:
                 SNP_value = check_SNP(line, SNPheader)
                 if SNP_value != 0:
-                    GC_SNPs.append([line[0], line[1], str(line[0]) + "_" + str(line[1]), SNP_value])
+                    GC_SNPs.append([str(line[0]) + "," + str(line[1]), SNP_value])
     return GC_SNPs, SNPheader
 
 
@@ -39,15 +38,15 @@ def GC_check(SNPs, d1, d2):
     d2_count = 0
     all_GC_tally = []
     for line in SNPs:
-        SNP_value = line[3]
+        SNP_value = line[0]
         if SNP_value > 0:
             if running_count == 0:
                 #edit stats
                 max_begin = last_pos
-                min_begin = line[1]
+                min_begin = line[2]
             #update all remaining stats
             running_count += 1
-            last_pos = line[1]
+            last_pos = line[2]
             if SNP_value == 1:
                 d1_count += 1
             if SNP_value == 2:
@@ -55,7 +54,7 @@ def GC_check(SNPs, d1, d2):
         elif SNP_value == -1:
             if running_count > 1:
                 #Process GC site 
-                max_end = line[1]
+                max_end = line[2]
                 min_end = last_pos
                 if d2_count == 0:
                     donor_dip = d1 + "_donor"
@@ -66,7 +65,7 @@ def GC_check(SNPs, d1, d2):
                     note = "terminated_beginning"
                     max_begin = min_begin
                 else: note = ""
-                all_GC_tally.append([line[0], max_begin, min_begin, min_end, max_end, running_count, d1_count, d2_count, donor_dip, note])
+                all_GC_tally.append([line[1], max_begin, min_begin, min_end, max_end, running_count, d1_count, d2_count, donor_dip, note])
                 max_begin = 0
                 min_begin = 0
                 donor_dip = 0
@@ -75,7 +74,7 @@ def GC_check(SNPs, d1, d2):
             max_begin = 0
             min_begin = 0
             running_count = 0
-            last_pos = line[1] 
+            last_pos = line[2] 
     if running_count > 0:
         #process final string of SNPs
         max_end = last_pos
@@ -86,7 +85,7 @@ def GC_check(SNPs, d1, d2):
             donor_dip = d2 + "_donor"
         else: donor_dip = "mixed_donors"
         note = "terminated_ending"
-        all_GC_tally.append([line[0], max_begin, min_begin, min_end, max_end, running_count, d1_count, d2_count, donor_dip, note])
+        all_GC_tally.append([line[1], max_begin, min_begin, min_end, max_end, running_count, d1_count, d2_count, donor_dip, note])
     return all_GC_tally
 
 
@@ -117,6 +116,33 @@ def process_header(header, d1, p1, p2, d2):
 
 
 
+def read_bed(bed_file):
+    regions = []
+    chroms = []
+    with open(bed_file, "r") as handle:
+        for line in handle:
+            line = line.strip().split('\t')
+            line[1] = int(line[1])
+            line[2] = int(line[2])
+            regions.append(line)
+            if line[0] not in chroms:
+                chroms.append(line[0])
+    return regions, chroms
+
+
+def score_vcf(vcf, columnID, chroms, bed, d1, d2):
+    final_groups = []
+    vcf_short = [[i[1]] + i[columnID].split(',') for i in vcf]
+    print(vcf_short[0])
+    for i in chroms:
+        chrom_vcf = [j for j in vcf_short if j[1] == i]
+        temp_bed = [j for j in bed if j[0] == i]
+        for k in temp_bed:
+            temp_vcf = [l for l in chrom_vcf if int(l[2]) >= k[1] and int(l[2]) <= k[2]]
+            final_groups += GC_check(temp_vcf, d1, d2)
+    return final_groups
+
+
 def parse_args():
     #Parse Arguments from input
     parser = argparse.ArgumentParser(usage="GC [-h] -c CHROM -d1 DIP_PREFIX -p1 POLY_PREFIX -p2 POLY_PREFIX -d2 DIP_PREFIX -vcf VCF_FILE -o OUTFILE")
@@ -126,15 +152,20 @@ def parse_args():
     parser.add_argument("d2", help="VCF header column name for Diploid 2.")
     parser.add_argument("vcf", help="Input VCF file. Must contain only one chromosome, and be sorted by position number, and contain header line starting with \"#CHROM\"")
     parser.add_argument("o", help="Outfile to print resulting areas of potential Homoeologous Gene Conversion.")
+    parser.add_argument("bed", help="bed file with regions of the genome to analyze. Regions should be non-overlapping and contain no inversions/translocations within them.")
     args = parser.parse_args()
     print(args.d1)
     print(args.p1)
     print(args.p2)
     print(args.d2)
     print(args.o)
+    inbed,chroms = read_bed(args.bed)
+    print(*chroms, sep='\t')
+    print(*inbed, sep='\t')
     filtered_vcf, species = read_file(args.d1, args.p1, args.p2, args.d2, args.vcf)
     print(str(len(filtered_vcf)))
-    GC_sites = GC_check(filtered_vcf, args.d1, args.d2)
+#    GC_sites = GC_check(filtered_vcf, args.d1, args.d2)
+    GC_sites = score_vcf(filtered_vcf, 0, chroms, inbed, args.d1, args.d2)
     print_output(GC_sites, args.o)
 
 
