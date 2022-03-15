@@ -36,6 +36,7 @@ def GC_check(SNPs, d1, d2):
     last_pos = 0
     d1_count = 0
     d2_count = 0
+    nodir_count = 0
     all_GC_tally = []
     for line in SNPs:
         SNP_value = line[0]
@@ -51,6 +52,8 @@ def GC_check(SNPs, d1, d2):
                 d1_count += 1
             if SNP_value == 2:
                 d2_count += 1
+            if SNP_value ==3:
+                nodir_count += 1
         elif SNP_value == -1:
             if running_count > 1:
                 #Process GC site 
@@ -64,8 +67,8 @@ def GC_check(SNPs, d1, d2):
                 if max_begin == 0: 
                     note = "terminated_beginning"
                     max_begin = min_begin
-                else: note = ""
-                all_GC_tally.append([line[1], max_begin, min_begin, min_end, max_end, running_count, d1_count, d2_count, donor_dip, note])
+                else: note = "complete"
+                all_GC_tally.append([line[1], max_begin, min_begin, min_end, max_end, running_count, d1_count, d2_count, nodir_count, donor_dip, note])
                 max_begin = 0
                 min_begin = 0
                 donor_dip = 0
@@ -75,6 +78,7 @@ def GC_check(SNPs, d1, d2):
             min_begin = 0
             running_count = 0
             last_pos = line[2] 
+            nodir_count = 0
     if running_count > 0:
         #process final string of SNPs
         max_end = last_pos
@@ -93,6 +97,7 @@ def GC_check(SNPs, d1, d2):
 def check_SNP(vcf_line, header_list):
     d1_SNPs = [["1", "1", "1", "0"], ["0", "0", "0", "1"]]
     d2_SNPs = [["1", "0", "0", "0"], ["0", "1", "1", "1"]]
+    nodirection_SNPs = [["0", "1", "1", "0"], ["1", "0", "0", "1"]]
     bad_SNPs = [["0", "0", "1", "1"], ["1", "1", "0", "0"]]
     check = [vcf_line[i] for i in header_list]
     if check in d1_SNPs:
@@ -101,6 +106,8 @@ def check_SNP(vcf_line, header_list):
         return 2
     if check in bad_SNPs:
         return -1
+    if check in nodirection_SNPs:
+        return 3
     else:
         return 0
 
