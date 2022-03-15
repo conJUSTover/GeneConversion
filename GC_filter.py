@@ -152,7 +152,7 @@ def score_vcf(vcf, columnID, chroms, bed, d1, d2):
 
 def parse_args():
     #Parse Arguments from input
-    parser = argparse.ArgumentParser(usage="GC [-h] -c CHROM -d1 DIP_PREFIX -p1 POLY_PREFIX -p2 POLY_PREFIX -d2 DIP_PREFIX -vcf VCF_FILE -o OUTFILE")
+    parser = argparse.ArgumentParser(usage="GC [-h] -d1 DIP_PREFIX -p1 POLY_PREFIX -p2 POLY_PREFIX -d2 DIP_PREFIX -vcf VCF_FILE -bed BEDFILE -o OUTFILE")
     parser.add_argument("-d1", default = None, help="VCF header column name for Diploid 1.")
     parser.add_argument("-p1", default = None, help="VCF header column name for Polyploid Subgenome 1.")
     parser.add_argument("-p2", default = None, help="VCF header column name for Polyploid Subgenome 2.")
