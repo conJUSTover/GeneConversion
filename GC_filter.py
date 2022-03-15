@@ -89,7 +89,7 @@ def GC_check(SNPs, d1, d2):
             donor_dip = d2 + "_donor"
         else: donor_dip = "mixed_donors"
         note = "terminated_ending"
-        all_GC_tally.append([line[1], max_begin, min_begin, min_end, max_end, running_count, d1_count, d2_count, donor_dip, note])
+        all_GC_tally.append([line[1], max_begin, min_begin, min_end, max_end, running_count, d1_count, d2_count, nodir_count, donor_dip, note])
     return all_GC_tally
 
 
