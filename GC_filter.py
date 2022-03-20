@@ -6,7 +6,7 @@
 import sys
 import argparse
 
-def read_file(d1, p1, p2, d2, vcf):
+def read_file(d1, p1, p2, d2, vcf, complete):
     #Read file and filter out non-informative SNPs 
     #read header
     GC_SNPs = []
@@ -152,7 +152,7 @@ def score_vcf(vcf, columnID, chroms, bed, d1, d2):
 
 def parse_args():
     #Parse Arguments from input
-    parser = argparse.ArgumentParser(usage="GC [-h] -d1 DIP_PREFIX -p1 POLY_PREFIX -p2 POLY_PREFIX -d2 DIP_PREFIX -vcf VCF_FILE -bed BEDFILE -o OUTFILE")
+    parser = argparse.ArgumentParser(usage="GC [-h] [--no-complete] -d1 DIP_PREFIX -p1 POLY_PREFIX -p2 POLY_PREFIX -d2 DIP_PREFIX -vcf VCF_FILE -bed BEDFILE -o OUTFILE")
     parser.add_argument("-d1", default = None, help="VCF header column name for Diploid 1.")
     parser.add_argument("-p1", default = None, help="VCF header column name for Polyploid Subgenome 1.")
     parser.add_argument("-p2", default = None, help="VCF header column name for Polyploid Subgenome 2.")
@@ -160,7 +160,11 @@ def parse_args():
     parser.add_argument("-vcf", default = None, help="Input VCF file. Must contain only one chromosome, and be sorted by position number, and contain header line starting with \"#CHROM\"")
     parser.add_argument("-o", default = None, help="Outfile to print resulting areas of potential Homoeologous Gene Conversion.")
     parser.add_argument("-bed", default = None, help="bed file with regions of the genome to analyze. Regions should be non-overlapping and contain no inversions/translocations within them.")
+#    parser.add_argument("--complete", dest='complete', action='store_true')
+    parser.add_argument("--no-complete", dest='complete', action='store_false')
+    parser.set_defaults(complete=True)
     args = parser.parse_args()
+    print(str(args.complete))
     print(args.d1)
     print(args.p1)
     print(args.p2)
@@ -169,7 +173,7 @@ def parse_args():
     inbed,chroms = read_bed(args.bed)
     print(*chroms, sep='\t')
     print(*inbed, sep='\t')
-    filtered_vcf, species = read_file(args.d1, args.p1, args.p2, args.d2, args.vcf)
+    filtered_vcf, species = read_file(args.d1, args.p1, args.p2, args.d2, args.vcf, args.complete)
     print(str(len(filtered_vcf)))
 #    GC_sites = GC_check(filtered_vcf, args.d1, args.d2)
     GC_sites = score_vcf(filtered_vcf, 0, chroms, inbed, args.d1, args.d2)
