@@ -22,7 +22,7 @@ def read_file(d1, p1, p2, d2, vcf, complete):
                     SNPheader = process_header(line, d1, p1, p2, d2)
                     print(*SNPheader, sep = '\t')
             else:
-                SNP_value = check_SNP(line, SNPheader)
+                SNP_value = check_SNP(line, SNPheader, complete)
                 if SNP_value != 0:
                     GC_SNPs.append([str(line[0]) + "," + str(line[1]), SNP_value])
     return GC_SNPs, SNPheader
@@ -94,12 +94,12 @@ def GC_check(SNPs, d1, d2):
 
 
 
-def check_SNP(vcf_line, header_list):
-    d1_SNPs = [["1", "1", "1", "0"], ["0", "0", "0", "1"]]
-    d2_SNPs = [["1", "0", "0", "0"], ["0", "1", "1", "1"]]
-    nodirection_SNPs = [["0", "1", "1", "0"], ["1", "0", "0", "1"]]
-    bad_SNPs = [["0", "0", "1", "1"], ["1", "1", "0", "0"]]
-    check = [vcf_line[i] for i in header_list]
+def check_SNP(vcf_line, header_list, complete):
+    d1_SNPs = [[1.0, 1.0, 1.0, 0.0], [0.0, 0.0, 0.0, 1.0]]
+    d2_SNPs = [[1.0, 0.0, 0.0, 0.0], [0.0, 1.0, 1.0, 1.0]]
+    nodirection_SNPs = [[0.0, 1.0, 1.0, 0.0], [1.0, 0.0, 0.0, 1.0]]
+    bad_SNPs = [[0.0, 0.0, 1.0, 1.0], [1.0, 1.0, 0.0, 0.0]]
+    check = [SNP_freq(vcf_line, i, complete) for i in header_list]
     if check in d1_SNPs:
         return 1
     if check in d2_SNPs:
@@ -112,12 +112,28 @@ def check_SNP(vcf_line, header_list):
         return 0
 
 
+def SNP_freq(SNPs, species, complete):
+    positions = 0.0
+    derived = 0.0
+    check = [SNPs[i] for i in species]
+    for i in check:
+        if i == ".":
+            if complete: return None
+        elif i == "1":
+            positions += 1
+            derived += 1
+        elif i == "0":
+            positions += 1
+        else: 
+            sys.exit("Unrecognized SNP value: " + i)
+    if positions == 0.0: return None #If no positions remain for species group
+    return derived / positions
 
 def process_header(header, d1, p1, p2, d2):
-    dip1 = header.index(d1)
-    pol1 = header.index(p1)
-    pol2 = header.index(p2)
-    dip2 = header.index(d2)
+    dip1 = [header.index(i) for i in d1.split(',')]
+    pol1 = [header.index(i) for i in p1.split(',')]
+    pol2 = [header.index(i) for i in p2.split(',')]
+    dip2 = [header.index(i) for i in d2.split(',')]
     pos = [dip1, pol1, pol2, dip2]
     return pos
 
