@@ -59,7 +59,9 @@ def GC_check(SNPs, d1, d2):
                 #Process GC site 
                 max_end = line[2]
                 min_end = last_pos
-                if d2_count == 0:
+                if d1_count + d2_count == 0:
+                    donor_dip = "Unknown_donor"
+                elif d2_count == 0:
                     donor_dip = d1 + "_donor"
                 elif d1_count == 0:
                     donor_dip = d2 + "_donor"
@@ -83,7 +85,9 @@ def GC_check(SNPs, d1, d2):
         #process final string of SNPs
         max_end = last_pos
         min_end = last_pos
-        if d2_count == 0:
+        if d1_count + d2_count == 0:
+            donor_dip = "Unknonwn_donor"
+        elif d2_count == 0:
             donor_dip = d1 + "_donor"
         elif d1_count == 0:
             donor_dip = d2 + "_donor"
