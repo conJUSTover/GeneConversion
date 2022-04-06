@@ -55,7 +55,7 @@ def GC_check(SNPs, d1, d2):
             if SNP_value ==3:
                 nodir_count += 1
         elif SNP_value == -1:
-            if running_count > 1:
+            if running_count > 0:
                 #Process GC site 
                 max_end = line[2]
                 min_end = last_pos
@@ -86,7 +86,7 @@ def GC_check(SNPs, d1, d2):
         max_end = last_pos
         min_end = last_pos
         if d1_count + d2_count == 0:
-            donor_dip = "Unknonwn_donor"
+            donor_dip = "Unknown_donor"
         elif d2_count == 0:
             donor_dip = d1 + "_donor"
         elif d1_count == 0:
@@ -191,8 +191,8 @@ def parse_args():
     print(args.d2)
     print(args.o)
     inbed,chroms = read_bed(args.bed)
-    print(*chroms, sep='\t')
-    print(*inbed, sep='\t')
+#    print(*chroms, sep='\t')
+#    print(*inbed, sep='\t')
     filtered_vcf, species = read_file(args.d1, args.p1, args.p2, args.d2, args.vcf, args.complete)
     print(str(len(filtered_vcf)))
 #    GC_sites = GC_check(filtered_vcf, args.d1, args.d2)
