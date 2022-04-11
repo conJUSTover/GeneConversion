@@ -29,7 +29,7 @@ def read_file(d1, p1, p2, d2, vcf, complete):
 
 
 
-def GC_check(SNPs, d1, d2):
+def GC_check(SNPs, d1, d2, homoeo):
     running_count = 0
     max_begin = 0
     min_begin = 0
@@ -37,6 +37,7 @@ def GC_check(SNPs, d1, d2):
     d1_count = 0
     d2_count = 0
     nodir_count = 0
+    previous = 0
     all_GC_tally = []
     for line in SNPs:
         SNP_value = line[0]
@@ -71,9 +72,15 @@ def GC_check(SNPs, d1, d2):
                     max_begin = min_begin
                 else: note = "complete"
                 all_GC_tally.append([line[1], max_begin, min_begin, min_end, max_end, running_count, d1_count, d2_count, nodir_count, donor_dip, note])
-                max_begin = 0
-                min_begin = 0
+                max_begin = max_end
+#                min_begin = 0
                 donor_dip = 0
+            elif previous == -1 and homoeo:
+                max_end = line[2]
+                donor_dip = "homoeoSNP"
+                note = "homoeoSNP"
+                max_begin = last_pos
+                all_GC_tally.append([line[1], max_begin, min_begin, min_end, max_end, running_count, d1_count, d2_count, nodir_count, donor_dip, note])
             d1_count = 0
             d2_count = 0
             max_begin = 0
@@ -81,6 +88,8 @@ def GC_check(SNPs, d1, d2):
             running_count = 0
             last_pos = line[2] 
             nodir_count = 0
+            min_end = 0 
+        previous = SNP_value
     if running_count > 0:
         #process final string of SNPs
         max_end = last_pos
@@ -157,7 +166,7 @@ def read_bed(bed_file):
     return regions, chroms
 
 
-def score_vcf(vcf, columnID, chroms, bed, d1, d2):
+def score_vcf(vcf, columnID, chroms, bed, d1, d2, homoeo):
     final_groups = []
     vcf_short = [[i[1]] + i[columnID].split(',') for i in vcf]
     print(vcf_short[0])
@@ -166,7 +175,7 @@ def score_vcf(vcf, columnID, chroms, bed, d1, d2):
         temp_bed = [j for j in bed if j[0] == i]
         for k in temp_bed:
             temp_vcf = [l for l in chrom_vcf if int(l[2]) >= k[1] and int(l[2]) <= k[2]]
-            final_groups += GC_check(temp_vcf, d1, d2)
+            final_groups += GC_check(temp_vcf, d1, d2, homoeo)
     return final_groups
 
 
@@ -182,7 +191,9 @@ def parse_args():
     parser.add_argument("-bed", default = None, help="bed file with regions of the genome to analyze. Regions should be non-overlapping and contain no inversions/translocations within them.")
 #    parser.add_argument("--complete", dest='complete', action='store_true')
     parser.add_argument("--no-complete", dest='complete', action='store_false', help="When inputting multiple species on a branch tip, this flag allows for missing data in all but one of the species on that tip.")
+    parser.add_argument("--homoeoSNPs", dest='homoeoSNPs', action='store_true', help="only identifies homoeoSNPs with zero SNPs in between them. Null distribution of sizes between homoeoSNPs.")
     parser.set_defaults(complete=True)
+    parser.set_defaults(homoeoSNPs=False)
     args = parser.parse_args()
     print(str(args.complete))
     print(args.d1)
@@ -196,7 +207,7 @@ def parse_args():
     filtered_vcf, species = read_file(args.d1, args.p1, args.p2, args.d2, args.vcf, args.complete)
     print(str(len(filtered_vcf)))
 #    GC_sites = GC_check(filtered_vcf, args.d1, args.d2)
-    GC_sites = score_vcf(filtered_vcf, 0, chroms, inbed, args.d1, args.d2)
+    GC_sites = score_vcf(filtered_vcf, 0, chroms, inbed, args.d1, args.d2, args.homoeoSNPs)
     print_output(GC_sites, args.o)
 
 
