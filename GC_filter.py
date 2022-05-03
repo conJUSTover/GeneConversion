@@ -73,7 +73,8 @@ def GC_check(SNPs, d1, d2, homoeo, indels):
                     note = "terminated_beginning"
                     max_begin = min_begin
                 else: note = "complete"
-                all_GC_tally.append([line[1], max_begin, min_begin, min_end, max_end, running_count, d1_count, d2_count, nodir_count, donor_dip, note])
+                min_indel_count, min_indel_length, max_indel_count, max_indel_length = process_indel(max_begin, min_begin, min_end, max_end, indels)
+                all_GC_tally.append([line[1], max_begin, min_begin, min_end, max_end, running_count, d1_count, d2_count, nodir_count, donor_dip, note, min_indel_count, min_indel_length, max_indel_count, max_indel_length])
                 max_begin = max_end
 #                min_begin = 0
                 donor_dip = 0
@@ -82,7 +83,8 @@ def GC_check(SNPs, d1, d2, homoeo, indels):
                 donor_dip = "homoeoSNP"
                 note = "complete"
                 max_begin = last_pos
-                all_GC_tally.append([line[1], max_begin, min_begin, min_end, max_end, running_count, d1_count, d2_count, nodir_count, donor_dip, note])
+                min_indel_count, min_indel_length, max_indel_count, max_indel_length = process_indel(max_begin, min_begin, min_end, max_end, indels)
+                all_GC_tally.append([line[1], max_begin, min_begin, min_end, max_end, running_count, d1_count, d2_count, nodir_count, donor_dip, note, min_indel_count, min_indel_length, max_indel_count, max_indel_length])
             d1_count = 0
             d2_count = 0
             max_begin = 0
@@ -104,7 +106,8 @@ def GC_check(SNPs, d1, d2, homoeo, indels):
             donor_dip = d2 + "_donor"
         else: donor_dip = "mixed_donors"
         note = "terminated_ending"
-        all_GC_tally.append([line[1], max_begin, min_begin, min_end, max_end, running_count, d1_count, d2_count, nodir_count, donor_dip, note])
+        min_indel_count, min_indel_length, max_indel_count, max_indel_length = process_indel(max_begin, min_begin, min_end, max_end, indels)
+        all_GC_tally.append([line[1], max_begin, min_begin, min_end, max_end, running_count, d1_count, d2_count, nodir_count, donor_dip, note, min_indel_count, min_indel_length, max_indel_count, max_indel_length])
     return all_GC_tally
 
 
@@ -125,6 +128,15 @@ def check_SNP(vcf_line, header_list, complete):
         return 3
     else:
         return 0
+
+def process_indel(max_beg, min_beg, min_end, max_end, indels):
+    max_indel = [i for i in indels if i[1] > int(max_beg) and i[1] < int(max_end)]
+    max_count = len(max_indel)
+    max_len = sum([i[2] for i in max_indel])
+    min_indel = [i for i in max_indel if i[1] > int(min_beg) and i[1] < int(min_end)]
+    min_count = len(min_indel)
+    min_len = sum([i[2] for i in min_indel])
+    return min_count, min_len, max_count, max_len
 
 
 def SNP_freq(SNPs, species, complete):
