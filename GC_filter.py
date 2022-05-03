@@ -78,7 +78,7 @@ def GC_check(SNPs, d1, d2, homoeo):
             elif previous == -1 and homoeo:
                 max_end = line[2]
                 donor_dip = "homoeoSNP"
-                note = "homoeoSNP"
+                note = "complete"
                 max_begin = last_pos
                 all_GC_tally.append([line[1], max_begin, min_begin, min_end, max_end, running_count, d1_count, d2_count, nodir_count, donor_dip, note])
             d1_count = 0
