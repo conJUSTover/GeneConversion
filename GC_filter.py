@@ -29,7 +29,7 @@ def read_file(d1, p1, p2, d2, vcf, complete):
 
 
 
-def GC_check(SNPs, d1, d2, homoeo):
+def GC_check(SNPs, d1, d2, homoeo, indels):
     running_count = 0
     max_begin = 0
     min_begin = 0
@@ -151,6 +151,15 @@ def process_header(header, d1, p1, p2, d2):
     return pos
 
 
+def read_indel(indel_file):
+    indel_return = []
+    with open(indel_file, "r") as handle:
+        for pos in handle:
+            temp_pos = pos.strip().split('\t')
+            temp_pos[-1] = int(temp_pos[-1])
+            indel_return.append(temp_pos)
+    return indel_return
+
 
 def read_bed(bed_file):
     regions = []
@@ -166,16 +175,17 @@ def read_bed(bed_file):
     return regions, chroms
 
 
-def score_vcf(vcf, columnID, chroms, bed, d1, d2, homoeo):
+def score_vcf(vcf, columnID, chroms, bed, d1, d2, homoeo, indels):
     final_groups = []
     vcf_short = [[i[1]] + i[columnID].split(',') for i in vcf]
     print(vcf_short[0])
     for i in chroms:
         chrom_vcf = [j for j in vcf_short if j[1] == i]
         temp_bed = [j for j in bed if j[0] == i]
+        temp_indel = [j for j in indels if j[0] == i]
         for k in temp_bed:
             temp_vcf = [l for l in chrom_vcf if int(l[2]) >= k[1] and int(l[2]) <= k[2]]
-            final_groups += GC_check(temp_vcf, d1, d2, homoeo)
+            final_groups += GC_check(temp_vcf, d1, d2, homoeo, temp_indel)
     return final_groups
 
 
@@ -189,7 +199,7 @@ def parse_args():
     parser.add_argument("-vcf", default = None, help="Input VCF file. Must contain only one chromosome, and be sorted by position number, and contain header line starting with \"#CHROM\"")
     parser.add_argument("-o", default = None, help="Outfile to print resulting areas of potential Homoeologous Gene Conversion.")
     parser.add_argument("-bed", default = None, help="bed file with regions of the genome to analyze. Regions should be non-overlapping and contain no inversions/translocations within them.")
-#    parser.add_argument("--complete", dest='complete', action='store_true')
+    parser.add_argument("-indel", default = None, help="Tab-delimited file with chromsome, position, and size of indel in the reference genome relative to ancestral state. Importantly, sign of indel length is size change relative to ancestral state (i.e. alternative allele - reference allele).")
     parser.add_argument("--no-complete", dest='complete', action='store_false', help="When inputting multiple species on a branch tip, this flag allows for missing data in all but one of the species on that tip.")
     parser.add_argument("--homoeoSNPs", dest='homoeoSNPs', action='store_true', help="only identifies homoeoSNPs with zero SNPs in between them. Null distribution of sizes between homoeoSNPs.")
     parser.set_defaults(complete=True)
@@ -202,18 +212,14 @@ def parse_args():
     print(args.d2)
     print(args.o)
     inbed,chroms = read_bed(args.bed)
+    indels = read_indel(args.indel)
 #    print(*chroms, sep='\t')
 #    print(*inbed, sep='\t')
     filtered_vcf, species = read_file(args.d1, args.p1, args.p2, args.d2, args.vcf, args.complete)
     print(str(len(filtered_vcf)))
 #    GC_sites = GC_check(filtered_vcf, args.d1, args.d2)
-    GC_sites = score_vcf(filtered_vcf, 0, chroms, inbed, args.d1, args.d2, args.homoeoSNPs)
+    GC_sites = score_vcf(filtered_vcf, 0, chroms, inbed, args.d1, args.d2, args.homoeoSNPs, indels)
     print_output(GC_sites, args.o)
-
-
-
-
-
 
 
 def print_output(output, outfile):
