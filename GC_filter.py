@@ -158,7 +158,8 @@ def read_indel(indel_file):
     with open(indel_file, "r") as handle:
         for pos in handle:
             temp_pos = pos.strip().split('\t')
-            temp_pos[-1] = int(temp_pos[-1])
+            temp_pos[1] = int(temp_pos[1])
+            temp_pos[2] = int(temp_pos[2])
             indel_return.append(temp_pos)
     return indel_return
 
