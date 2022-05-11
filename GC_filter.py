@@ -1,8 +1,7 @@
 #!/usr/bin/python
 
 #TODO create randomized positions
-#TODO give string of positions of converted homoeoSNPs
-#TODO test new filtering of positions for indels and bed files. Current Time for test file: 41.484s
+#TODO test new filtering of positions for indels and bed files. Current Time for test file: 42.057s
 #Script can be testing using command: 
 #python GC_filter.py -d1 D5 -d2 A2 -p1 AD1.Dt -p2 AD1.At -vcf D5_11.full.onlyGT.recode.vcf -o AD5_11.AD1.test.homoeSNPs.txt -bed trial.bed -indel D5_11.indel.lengths.bed --homoeoSNPs
 
@@ -41,6 +40,7 @@ def GC_check(SNPs, d1, d2, homoeo, indels):
     d2_count = 0
     nodir_count = 0
     previous = 0
+    homoeo_string = ""
     all_GC_tally = []
     for line in SNPs:
         SNP_value = line[0]
@@ -54,8 +54,10 @@ def GC_check(SNPs, d1, d2, homoeo, indels):
             last_pos = line[2]
             if SNP_value == 1:
                 d1_count += 1
+                homoeo_string += d1.replace(",", "_") + ","
             if SNP_value == 2:
                 d2_count += 1
+                homoeo_string += d2.replace(",", "_") + ","
             if SNP_value ==3:
                 nodir_count += 1
         elif SNP_value == -1:
@@ -75,7 +77,7 @@ def GC_check(SNPs, d1, d2, homoeo, indels):
                     max_begin = min_begin
                 else: note = "complete"
                 min_indel_count, min_indel_length, max_indel_count, max_indel_length = process_indel(max_begin, min_begin, min_end, max_end, indels)
-                all_GC_tally.append([line[1], max_begin, min_begin, min_end, max_end, running_count, d1_count, d2_count, nodir_count, donor_dip, note, min_indel_count, min_indel_length, max_indel_count, max_indel_length])
+                all_GC_tally.append([line[1], max_begin, min_begin, min_end, max_end, running_count, d1_count, d2_count, nodir_count, donor_dip, note, min_indel_count, min_indel_length, max_indel_count, max_indel_length, homoeo_string[:-1]])
                 max_begin = max_end
 #                min_begin = 0
                 donor_dip = 0
@@ -85,7 +87,7 @@ def GC_check(SNPs, d1, d2, homoeo, indels):
                 note = "complete"
                 max_begin = last_pos
                 min_indel_count, min_indel_length, max_indel_count, max_indel_length = process_indel(max_begin, min_begin, min_end, max_end, indels)
-                all_GC_tally.append([line[1], max_begin, min_begin, min_end, max_end, running_count, d1_count, d2_count, nodir_count, donor_dip, note, min_indel_count, min_indel_length, max_indel_count, max_indel_length])
+                all_GC_tally.append([line[1], max_begin, min_begin, min_end, max_end, running_count, d1_count, d2_count, nodir_count, donor_dip, note, min_indel_count, min_indel_length, max_indel_count, max_indel_length, homoeo_string[:-1]])
             d1_count = 0
             d2_count = 0
             max_begin = 0
@@ -94,6 +96,7 @@ def GC_check(SNPs, d1, d2, homoeo, indels):
             last_pos = line[2] 
             nodir_count = 0
             min_end = 0 
+            homoeo_string = ""
         previous = SNP_value
     if running_count > 0:
         #process final string of SNPs
@@ -108,7 +111,7 @@ def GC_check(SNPs, d1, d2, homoeo, indels):
         else: donor_dip = "mixed_donors"
         note = "terminated_ending"
         min_indel_count, min_indel_length, max_indel_count, max_indel_length = process_indel(max_begin, min_begin, min_end, max_end, indels)
-        all_GC_tally.append([line[1], max_begin, min_begin, min_end, max_end, running_count, d1_count, d2_count, nodir_count, donor_dip, note, min_indel_count, min_indel_length, max_indel_count, max_indel_length])
+        all_GC_tally.append([line[1], max_begin, min_begin, min_end, max_end, running_count, d1_count, d2_count, nodir_count, donor_dip, note, min_indel_count, min_indel_length, max_indel_count, max_indel_length, homoeo_string[:-1]])
     return all_GC_tally
 
 
