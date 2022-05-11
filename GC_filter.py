@@ -2,7 +2,7 @@
 
 #TODO create randomized positions
 #TODO give string of positions of converted homoeoSNPs
-#TODO test new filtering of positions for indels and bed files 
+#TODO test new filtering of positions for indels and bed files. Current Time for test file: 41.484s
 #Script can be testing using command: 
 #python GC_filter.py -d1 D5 -d2 A2 -p1 AD1.Dt -p2 AD1.At -vcf D5_11.full.onlyGT.recode.vcf -o AD5_11.AD1.test.homoeSNPs.txt -bed trial.bed -indel D5_11.indel.lengths.bed --homoeoSNPs
 
