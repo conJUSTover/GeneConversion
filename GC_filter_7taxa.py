@@ -1,6 +1,5 @@
 #!/usr/bin/python
 
-#TODO create randomized positions
 #TODO test new filtering of positions for indels and bed files. Current Time for test file: 42.057s
 #Script can be testing using command: 
 #python GC_filter.py -d1 D5 -d2 A2 -p1 AD1.Dt -p2 AD1.At -vcf D5_11.full.onlyGT.recode.vcf -o AD5_11.AD1.test.homoeSNPs.txt -bed trial.bed -indel D5_11.indel.lengths.bed --homoeoSNPs
@@ -8,7 +7,7 @@
 import sys
 import argparse
 
-def read_file(d1, p1, p2, d2, vcf, complete):
+def read_file(d1, p1, p2, d2, d1o, d2o, og, vcf, complete):
     #Read file and filter out non-informative SNPs 
     #read header
     GC_SNPs = []
@@ -21,7 +20,7 @@ def read_file(d1, p1, p2, d2, vcf, complete):
             line = line.strip().split('\t')
             if not SNPheader:
                 if line[0] == "#CHROM":
-                    SNPheader = process_header(line, d1, p1, p2, d2)
+                    SNPheader = process_header(line, d1o, d1, p1, p2, d2, d2o, og)
                     print(*SNPheader, sep = '\t')
             else:
                 SNP_value = check_SNP(line, SNPheader, complete)
@@ -117,21 +116,39 @@ def GC_check(SNPs, d1, d2, homoeo, indels):
 
 
 def check_SNP(vcf_line, header_list, complete):
-    d1_SNPs = [[1.0, 1.0, 1.0, 0.0], [0.0, 0.0, 0.0, 1.0]]
-    d2_SNPs = [[1.0, 0.0, 0.0, 0.0], [0.0, 1.0, 1.0, 1.0]]
-    nodirection_SNPs = [[0.0, 1.0, 1.0, 0.0], [1.0, 0.0, 0.0, 1.0]]
-    bad_SNPs = [[0.0, 0.0, 1.0, 1.0], [1.0, 1.0, 0.0, 0.0]]
     check = [SNP_freq(vcf_line, i, complete) for i in header_list]
-    if check in d1_SNPs:
-        return 1
-    if check in d2_SNPs:
-        return 2
-    if check in bad_SNPs:
-        return -1
-    if check in nodirection_SNPs:
-        return 3
-    else:
-        return 0
+    #SNP pattern is [dip1o, dip1, pol1, pol2, dip2, dip2o, og1]
+    #all patterns below should equal the binary representation of the return value
+    #or 128 minus the return value
+    #values are also paired () () () () () ()
+    if check in [[0000110],[1111001]]:
+        return 6 #GC ancestral d1 overwriting p2
+    elif check in [[0001010],[1110101]]: 
+        return 10 #ILS at (dip2, dip2o, p2) node
+    elif check in [[1100000],[0011111]]:
+        return 31 #GC ancestral d2 overwriting p1
+    elif check in [[1010000],[0101111]]:
+        return 47 #ILS as (dip1, dip1o, p1) node
+    elif check in [[0011110],[1100001]]:
+        return 30 #GC derived d2 overwriting p1
+    elif check in [[0101110],[1010001]]:
+        return 46 #RM at d1 terminus and (d2, d2o, p2) ancestor
+    elif check in [[0111000],[1000111]]:
+        return 56 #GC derived d1 overwriting p2
+    elif check in [[0110100],[1001011]]:
+        return 52 #RM at d2 terminus and (d1, d1o, p1) ancestor
+    elif check in [[1111000],[0000111]]:
+        return 7 #GC derived d1 overwriting p2
+    elif check in [[1110100],[0001011]]:
+        return 11 #RM at d2 terminus and (d1, d1o, p1) ancestor
+    elif check in [[0011100],[1100011]]:
+        return 28 #GC derived d2 overwriting p1
+    elif check in [[0101100],[1010011]]:
+        return 44 #RM at d1 terminus and (d2, d2o, p2) ancestor
+    elif check in [[0001110],[1110000],[0001111],[1110001]]:
+        return -1 #homoeoSNP #Could change to allow 0110000, 0001100, 1001111, 1110011 as well (no diploid outgroup derived, but shared d1/p1 or d2/p2 SNP)
+    else: return 0
+
 
 def process_indel(max_beg, min_beg, min_end, max_end, indels):
     max_indel = [i for i in indels if i[1] > int(max_beg) and i[1] < int(max_end)]
@@ -160,12 +177,15 @@ def SNP_freq(SNPs, species, complete):
     if positions == 0.0: return None #If no positions remain for species group
     return derived / positions
 
-def process_header(header, d1, p1, p2, d2):
+def process_header(header, d1o, d1, p1, p2, d2, d2o, og):
+    og1 = [header.index(i) for i in og.split(',')]
+    dip1o = [header.index(i) for i in d1o.split(',')]
     dip1 = [header.index(i) for i in d1.split(',')]
     pol1 = [header.index(i) for i in p1.split(',')]
     pol2 = [header.index(i) for i in p2.split(',')]
     dip2 = [header.index(i) for i in d2.split(',')]
-    pos = [dip1, pol1, pol2, dip2]
+    dip2o = [header.index(i) for i in d2o.split(',')]
+    pos = [dip1o, dip1, pol1, pol2, dip2, dip2o, og1]
     return pos
 
 
@@ -215,6 +235,9 @@ def parse_args():
     parser.add_argument("-p1", default = None, help="VCF header column name for Polyploid Subgenome 1. Can allow multiple species in comma-delimited list.")
     parser.add_argument("-p2", default = None, help="VCF header column name for Polyploid Subgenome 2. Can allow multiple species in comma-delimited list.")
     parser.add_argument("-d2", default = None, help="VCF header column name for Diploid 2. Can allow multiple species in comma-delimited list.")
+    parser.add_argument("-d1o", default = None, help="VCF header column name for the outgroup to Diploid 1. Can allow multiple species in comma-delimited list.")
+    parser.add_argument("-og", default = None, help="VCF header column name for the outgroup used to polarize SNP calls into ancestral/derived. Can allow multiple species in comma-delimited list.")
+    parser.add_argument("-d2o", default = None, help="VCF header column name for the outgroup to Diploid 2. Can allow multiple species in comma-delimited list.")
     parser.add_argument("-vcf", default = None, help="Input VCF file. Must contain only one chromosome, and be sorted by position number, and contain header line starting with \"#CHROM\"")
     parser.add_argument("-o", default = None, help="Outfile to print resulting areas of potential Homoeologous Gene Conversion.")
     parser.add_argument("-bed", default = None, help="bed file with regions of the genome to analyze. Regions should be non-overlapping and contain no inversions/translocations within them.")
@@ -234,7 +257,7 @@ def parse_args():
     indels = read_indel(args.indel)
 #    print(*chroms, sep='\t')
 #    print(*inbed, sep='\t')
-    filtered_vcf, species = read_file(args.d1, args.p1, args.p2, args.d2, args.vcf, args.complete)
+    filtered_vcf, species = read_file(args.d1, args.p1, args.p2, args.d2, args.d1o, args.d2o, args.og, args.vcf, args.complete)
     print(str(len(filtered_vcf)))
 #    GC_sites = GC_check(filtered_vcf, args.d1, args.d2)
     GC_sites = score_vcf(filtered_vcf, 0, chroms, inbed, args.d1, args.d2, args.homoeoSNPs, indels)
