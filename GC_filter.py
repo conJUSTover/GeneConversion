@@ -32,86 +32,88 @@ def read_file(d1, p1, p2, d2, vcf, complete):
 
 
 def GC_check(SNPs, d1, d2, homoeo, indels):
-    running_count = 0
-    max_begin = 0
-    min_begin = 0
+    #[line[1], max_begin, min_begin, min_end, max_end, running_count, d1_count, d2_count, nodir_count, donor_dip, note, min_indel_count, min_indel_length, max_indel_count, max_indel_length, homoeo_string[:-1]]
+    metrics = ["", 0, 0, 0, 0, 0, 0, 0, 0, "", "", 0, 0, 0, 0, ""]
     last_pos = 0
-    d1_count = 0
-    d2_count = 0
-    nodir_count = 0
     previous = 0
-    homoeo_string = ""
     all_GC_tally = []
     for line in SNPs:
         SNP_value = line[0]
         if SNP_value > 0:
-            if running_count == 0:
+            if metrics[5] == 0:
                 #edit stats
-                max_begin = last_pos
-                min_begin = line[2]
+                metrics[1] = last_pos
+                metrics[2] = line[2]
             #update all remaining stats
-            running_count += 1
+            metrics[5] += 1
             last_pos = line[2]
             if SNP_value == 1:
-                d1_count += 1
-                homoeo_string += d1.replace(",", "_") + ","
+                metrics[6] += 1
+                metrics[15] += d1.replace(",", "_") + ","
             if SNP_value == 2:
-                d2_count += 1
-                homoeo_string += d2.replace(",", "_") + ","
+                metrics[7] += 1
+                metrics[15] += d2.replace(",", "_") + ","
             if SNP_value ==3:
-                nodir_count += 1
+                metrics[8] += 1
         elif SNP_value == -1:
-            if running_count > 0:
+            if metrics[5] > 0:
                 #Process GC site 
-                max_end = line[2]
-                min_end = last_pos
-                if d1_count + d2_count == 0:
-                    donor_dip = "Unknown_donor"
-                elif d2_count == 0:
-                    donor_dip = d1 + "_donor"
-                elif d1_count == 0:
-                    donor_dip = d2 + "_donor"
-                else: donor_dip = "mixed_donors"
-                if max_begin == 0: 
-                    note = "terminated_beginning"
-                    max_begin = min_begin
-                else: note = "complete"
-                min_indel_count, min_indel_length, max_indel_count, max_indel_length = process_indel(max_begin, min_begin, min_end, max_end, indels)
-                all_GC_tally.append([line[1], max_begin, min_begin, min_end, max_end, running_count, d1_count, d2_count, nodir_count, donor_dip, note, min_indel_count, min_indel_length, max_indel_count, max_indel_length, homoeo_string[:-1]])
-                max_begin = max_end
-#                min_begin = 0
-                donor_dip = 0
+                metrics[4] = line[2]
+                metrics[3] = last_pos
+                if metrics[6] + metrics[7] == 0:
+                    metrics[9] = "Unknown_donor"
+                elif metrics[7] == 0:
+                    metrics[9] = d1 + "_donor"
+                elif metrics[6] == 0:
+                    metrics[9] = d2 + "_donor"
+                else: metrics[9] = "mixed_donors"
+                if metrics[1] == 0: 
+                    metrics[10] = "terminated_beginning"
+                    metrics[1] = metrics[2]
+                else: metrics[10] = "complete"
+                metrics[11], metrics[12], metrics[13], metrics[14] = process_indel(metrics[1], metrics[2], metrics[3], metrics[4], indels)
+                metrics[15] = metrics[15][:-1]
+                metrics[0] = line[1]
+                all_GC_tally += [[line[1]] + metrics[1:]]
+                metrics[1] = metrics[4]
+                metrics[9] = 0
             elif previous == -1 and homoeo:
-                max_end = line[2]
-                donor_dip = "homoeoSNP"
-                note = "complete"
-                max_begin = last_pos
-                min_indel_count, min_indel_length, max_indel_count, max_indel_length = process_indel(max_begin, min_begin, min_end, max_end, indels)
-                all_GC_tally.append([line[1], max_begin, min_begin, min_end, max_end, running_count, d1_count, d2_count, nodir_count, donor_dip, note, min_indel_count, min_indel_length, max_indel_count, max_indel_length, homoeo_string[:-1]])
-            d1_count = 0
-            d2_count = 0
-            max_begin = 0
-            min_begin = 0
-            running_count = 0
+                metrics[4] = line[2]
+                metrics[9] = "homoeoSNP"
+                metrics[10] = "complete"
+                metrics[1] = last_pos
+                metrics[11], metrics[12], metrics[13], metrics[14] = process_indel(metrics[1], metrics[2], metrics[3], metrics[4], indels)
+                metrics[15] = metrics[15][:-1]
+                metrics[0] = line[1]
+                all_GC_tally += [[line[1]] + metrics[1:]]
+#                all_GC_tally.append([line[1], metrics[1], metrics[2], metrics[3], metrics[4], metrics[5], metrics[6], metrics[7], metrics[8], metrics[9], metrics[10], metrics[11], metrics[12], metrics[13], metrics[14], metrics[15][:-1]])
+            metrics[6] = 0
+            metrics[7] = 0
+            metrics[1] = 0
+            metrics[2] = 0
+            metrics[5] = 0
             last_pos = line[2] 
-            nodir_count = 0
-            min_end = 0 
-            homoeo_string = ""
+            metrics[8] = 0
+            metrics[3] = 0 
+            metrics[15] = ""
         previous = SNP_value
-    if running_count > 0:
+    if metrics[5] > 0:
         #process final string of SNPs
-        max_end = last_pos
-        min_end = last_pos
-        if d1_count + d2_count == 0:
-            donor_dip = "Unknown_donor"
-        elif d2_count == 0:
-            donor_dip = d1 + "_donor"
-        elif d1_count == 0:
-            donor_dip = d2 + "_donor"
-        else: donor_dip = "mixed_donors"
-        note = "terminated_ending"
-        min_indel_count, min_indel_length, max_indel_count, max_indel_length = process_indel(max_begin, min_begin, min_end, max_end, indels)
-        all_GC_tally.append([line[1], max_begin, min_begin, min_end, max_end, running_count, d1_count, d2_count, nodir_count, donor_dip, note, min_indel_count, min_indel_length, max_indel_count, max_indel_length, homoeo_string[:-1]])
+        metrics[4] = last_pos
+        metrics[3] = last_pos
+        if metrics[6] + metrics[7] == 0:
+            metrics[9] = "Unknown_donor"
+        elif metrics[7] == 0:
+            metrics[9] = d1 + "_donor"
+        elif metrics[6] == 0:
+            metrics[9] = d2 + "_donor"
+        else: metrics[9] = "mixed_donors"
+        metrics[10] = "terminated_ending"
+        metrics[11], metrics[12], metrics[13], metrics[14] = process_indel(metrics[1], metrics[2], metrics[3], metrics[4], indels)
+        metrics[15] = metrics[15][:-1]
+        metrics[0] = line[1]
+        all_GC_tally += [[line[1]] + metrics[1:]]
+#        all_GC_tally.append([line[1], metrics[1], metrics[2], metrics[3], metrics[4], metrics[5], metrics[6], metrics[7], metrics[8], metrics[9], metrics[10], metrics[11], metrics[12], metrics[13], metrics[14], metrics[15][:-1]])
     return all_GC_tally
 
 
