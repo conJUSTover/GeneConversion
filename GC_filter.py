@@ -72,7 +72,9 @@ def GC_check(SNPs, d1, d2, homoeo, indels):
                     metrics[1] = metrics[2]
                 else: metrics[10] = "complete"
                 metrics[11], metrics[12], metrics[13], metrics[14] = process_indel(metrics[1], metrics[2], metrics[3], metrics[4], indels)
-                metrics[15] = metrics[15][:-1]
+                if metrics[15]:
+                    metrics[15] = metrics[15][:-1]
+                else: metrics[15] = "-"
                 metrics[0] = line[1]
                 all_GC_tally += [[line[1]] + metrics[1:]]
                 metrics[1] = metrics[4]
@@ -83,10 +85,11 @@ def GC_check(SNPs, d1, d2, homoeo, indels):
                 metrics[10] = "complete"
                 metrics[1] = last_pos
                 metrics[11], metrics[12], metrics[13], metrics[14] = process_indel(metrics[1], metrics[2], metrics[3], metrics[4], indels)
-                metrics[15] = metrics[15][:-1]
+                if metrics[15]:
+                    metrics[15] = metrics[15][:-1]
+                else: metrics[15] = "-"
                 metrics[0] = line[1]
                 all_GC_tally += [[line[1]] + metrics[1:]]
-#                all_GC_tally.append([line[1], metrics[1], metrics[2], metrics[3], metrics[4], metrics[5], metrics[6], metrics[7], metrics[8], metrics[9], metrics[10], metrics[11], metrics[12], metrics[13], metrics[14], metrics[15][:-1]])
             metrics[6] = 0
             metrics[7] = 0
             metrics[1] = 0
@@ -110,10 +113,11 @@ def GC_check(SNPs, d1, d2, homoeo, indels):
         else: metrics[9] = "mixed_donors"
         metrics[10] = "terminated_ending"
         metrics[11], metrics[12], metrics[13], metrics[14] = process_indel(metrics[1], metrics[2], metrics[3], metrics[4], indels)
-        metrics[15] = metrics[15][:-1]
+        if metrics[15]:
+            metrics[15] = metrics[15][:-1]
+        else: metrics[15] = "-"
         metrics[0] = line[1]
         all_GC_tally += [[line[1]] + metrics[1:]]
-#        all_GC_tally.append([line[1], metrics[1], metrics[2], metrics[3], metrics[4], metrics[5], metrics[6], metrics[7], metrics[8], metrics[9], metrics[10], metrics[11], metrics[12], metrics[13], metrics[14], metrics[15][:-1]])
     return all_GC_tally
 
 
